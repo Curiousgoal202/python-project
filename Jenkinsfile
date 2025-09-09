@@ -17,28 +17,23 @@ pipeline {
             }
         }
 
-        // 2️⃣ Build
-        stage('Build') {
-            steps {
-                sh 'pip install -r requirements.txt'
-            }
-        }
-
-        // 3️⃣ Test
-        stage('Test') {
-            steps {
-                sh 'pytest || true'
-            }
-        }
-
-        // 4️⃣ Docker Build
+        // 2️⃣ Docker Build (includes all dependencies)
         stage('Docker Build') {
             steps {
                 sh "docker build -t $IMAGE_NAME:$IMAGE_TAG ."
             }
         }
 
-        // 5️⃣ Docker Push
+        // 3️⃣ Test inside Docker
+        stage('Test') {
+            steps {
+                sh """
+                    docker run --rm $IMAGE_NAME:$IMAGE_TAG pytest || true
+                """
+            }
+        }
+
+        // 4️⃣ Docker Push
         stage('Docker Push') {
             steps {
                 script {
@@ -55,18 +50,18 @@ pipeline {
             }
         }
 
-        // 6️⃣ Deploy
+        // 5️⃣ Deploy
         stage('Deploy') {
             steps {
                 sh """
                     docker stop webserver || true
                     docker rm webserver || true
-                    docker run -d --name webserver -p $SERVER_PORT:80 $IMAGE_NAME:$IMAGE_TAG
+                    docker run -d --name webserver -p $SERVER_PORT:8085 $IMAGE_NAME:$IMAGE_TAG
                 """
             }
         }
 
-        // 7️⃣ Health Check
+        // 6️⃣ Health Check
         stage('Health Check') {
             steps {
                 sh """
