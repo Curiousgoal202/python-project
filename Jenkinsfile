@@ -29,7 +29,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                // sh 'pytest || true'
+               sh 'pytest || true'
  
             }
         }
