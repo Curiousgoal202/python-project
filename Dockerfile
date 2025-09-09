@@ -1,17 +1,20 @@
 # Use official Python image as base
 FROM python:3.11-slim
 
-# Set working directory
+# Set working directory in container
 WORKDIR /app
 
-# Copy app file(s)
-COPY app.py /app
+# Copy requirements first for Docker layer caching
+COPY requirements.txt /app/
 
-# Install Flask directly (if needed)
-RUN pip install --no-cache-dir flask
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the port
+# Copy the rest of the app files
+COPY . /app
+
+# Expose the port your app runs on
 EXPOSE 8085
 
-# Run the app
-CMD ["python", "app.py"]
+# Command to run the app
+CMD ["python3", "app.py"]
