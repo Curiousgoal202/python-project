@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = "docker.io"
-        IMAGE_NAME = "server"
-        IMAGE_TAG = "latest"
-        SERVER_PORT = "8085"
-        DOCKERHUB_CREDENTIALS = "creds"
+        REGISTRY               = "docker.io"
+        IMAGE_NAME             = "server"
+        IMAGE_TAG              = "latest"
+        SERVER_PORT            = "8085"
+        DOCKERHUB_CREDENTIALS  = "creds"
     }
 
     stages {
@@ -43,8 +43,8 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'creds',
-                                                     usernameVariable: 'DOCKER_USER',
-                                                     passwordVariable: 'DOCKER_PASS')]) {
+                                                      usernameVariable: 'DOCKER_USER',
+                                                      passwordVariable: 'DOCKER_PASS')]) {
                         sh """
                             echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
                             docker tag \$IMAGE_NAME:\$IMAGE_TAG \$DOCKER_USER/\$IMAGE_NAME:\$IMAGE_TAG
@@ -53,3 +53,36 @@ pipeline {
                     }
                 }
             }
+        }
+
+        // 6️⃣ Deploy
+        stage('Deploy') {
+            steps {
+                sh """
+                    docker stop webserver || true
+                    docker rm webserver || true
+                    docker run -d --name webserver -p $SERVER_PORT:80 $IMAGE_NAME:$IMAGE_TAG
+                """
+            }
+        }
+
+        // 7️⃣ Health Check
+        stage('Health Check') {
+            steps {
+                sh """
+                    sleep 5
+                    curl -s -o /dev/null -w "%{http_code}" http://localhost:$SERVER_PORT | grep 200
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment successful!"
+        }
+        failure {
+            echo "❌ Deployment failed!"
+        }
+    }
+}
